@@ -1,11 +1,17 @@
 {
   "domain": "button_plus_v2",
   "name": "Button+ V2",
-  "version": "0.1.0",
-  "config_flow": true,
-  "dependencies": ["mqtt"],
   "codeowners": [
     "@cscherpenisse"
   ],
-  "iot_class": "local_push"
+  "config_flow": true,
+  "dependencies": [
+    "mqtt"
+  ],
+  "documentation": "https://github.com/YOUR_GITHUB_USERNAME/ha-button-plus-v2",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/YOUR_GITHUB_USERNAME/ha-button-plus-v2/issues",
+  "requirements": [],
+  "version": "0.1.0"
 }
