@@ -34,6 +34,6 @@ class ButtonPlusSensor(SensorEntity):
         self._attr_unique_id = f"{device_id}_{sensor_id}"
 
     @property
-    def state(self):
+    def native_value(self):
         topic = f"buttonplus/{self.device_id}/sensor/{self.sensor_id}"
         return self.coordinator.data.get(topic)
