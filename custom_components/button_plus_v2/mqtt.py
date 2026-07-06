@@ -9,20 +9,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ButtonPlusMQTT:
-    """MQTT wrapper for Button+ V2."""
+    """MQTT wrapper."""
 
     def __init__(self, hass, device_id: str) -> None:
         self.hass = hass
         self.device_id = device_id
         self.base = f"buttonplus/{device_id}"
-
         self._callbacks = []
 
     async def async_setup(self) -> None:
-        """Subscribe to all relevant topics."""
+        """Subscribe to MQTT topics."""
 
         topics = [
-            f"{self.base}/sensor/+",
+            f"{self.base}/sensor/#",
             f"{self.base}/button/+/pushbutton",
             f"{self.base}/displayitem/+/value/state",
             f"{self.base}/brightness/state",
@@ -41,7 +40,7 @@ class ButtonPlusMQTT:
         self._callbacks.append(cb)
 
     async def _message_received(self, msg) -> None:
-        """Handle incoming MQTT messages."""
+        """Handle incoming MQTT."""
 
         topic = msg.topic
         payload = msg.payload
@@ -57,7 +56,7 @@ class ButtonPlusMQTT:
             cb(topic, payload)
 
     async def publish(self, topic: str, payload) -> None:
-        """Publish MQTT message."""
+        """Publish MQTT."""
 
         if isinstance(payload, (dict, list)):
             payload = json.dumps(payload)
