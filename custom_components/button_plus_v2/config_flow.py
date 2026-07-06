@@ -1,27 +1,24 @@
-"""Config flow for Button+ V2."""
-
 from __future__ import annotations
 
 import logging
-
-import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST
 
+from .api import ButtonPlusAPI
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ButtonPlusV2ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Button+ V2."""
+class ButtonPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle config flow."""
 
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
+        """Initial step."""
 
         errors = {}
 
@@ -29,41 +26,35 @@ class ButtonPlusV2ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host = user_input[CONF_HOST]
 
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        f"http://{host}/config",
-                        timeout=aiohttp.ClientTimeout(total=10),
-                    ) as response:
+                api = ButtonPlusAPI(host)
+                data = await api.get_config()
 
-                        if response.status != 200:
-                            errors["base"] = "cannot_connect"
+                device_id = data["info"]["id"]
 
-                        else:
-                            data = await response.json()
+                await self.async_set_unique_id(device_id)
+                self._abort_if_unique_id_configured()
 
-                            device_id = data["info"]["deviceid"] if "deviceid" in data["info"] else data["info"]["id"]
-
-                            await self.async_set_unique_id(device_id)
-                            self._abort_if_unique_id_configured()
-
-                            return self.async_create_entry(
-                                title=data["core"]["location"],
-                                data={
-                                    "host": host,
-                                    "device_id": device_id,
-                                },
-                            )
+                return self.async_create_entry(
+                    title=data.get("core", {}).get("location", device_id),
+                    data={
+                        "host": host,
+                        "device_id": device_id,
+                        "config": data,
+                    },
+                )
 
             except Exception as err:
-                _LOGGER.exception(err)
+                _LOGGER.exception("Failed to connect to Button+ V2: %s", err)
                 errors["base"] = "cannot_connect"
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST): str,
+            }
+        )
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_HOST): str,
-                }
-            ),
+            data_schema=schema,
             errors=errors,
         )
