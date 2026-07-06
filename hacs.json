@@ -1,6 +1,13 @@
 {
-  "name": "Button Plus V2",
+  "name": "Button+ V2",
+  "country": [
+    "NL",
+    "BE"
+  ],
+  "homeassistant": "2025.1.0",
   "render_readme": true,
   "content_in_root": false,
-  "homeassistant": "2024.1.0"
+  "domains": [
+    "button_plus_v2"
+  ]
 }
