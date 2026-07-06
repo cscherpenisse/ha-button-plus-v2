@@ -4,7 +4,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 
 class ButtonPlusCoordinator(DataUpdateCoordinator):
-    """Stores MQTT state centrally."""
+    """Stores MQTT state."""
 
     def __init__(self, hass, mqtt_client):
         super().__init__(
@@ -13,15 +13,19 @@ class ButtonPlusCoordinator(DataUpdateCoordinator):
             name="button_plus_v2",
         )
 
+        self.hass = hass
         self.mqtt = mqtt_client
         self.data = {}
 
-    async def async_setup(self):
-        """Attach MQTT callback."""
+    async def async_setup(self) -> None:
+        """Start MQTT and bind callback."""
+
         self.mqtt.add_callback(self.handle_message)
-        await self.mqtt.async_setup()
 
     def handle_message(self, topic: str, payload):
-        """Store latest state."""
+        """Receive MQTT updates."""
+
         self.data[topic] = payload
-        self.async_set_updated_data(self.data)
+
+        # trigger HA update loop
+        self.async_set_updated_data(dict(self.data))
