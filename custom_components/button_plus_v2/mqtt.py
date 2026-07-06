@@ -1,39 +1,65 @@
+from __future__ import annotations
+
 import json
-import paho.mqtt.client as mqtt
+import logging
+
+from homeassistant.components import mqtt
+
+_LOGGER = logging.getLogger(__name__)
+
 
 class ButtonPlusMQTT:
+    """MQTT wrapper for Button+ V2."""
 
-    def __init__(self, host, on_message):
-        self.host = host
-        self.client = mqtt.Client()
-        self.on_message = on_message
+    def __init__(self, hass, device_id: str) -> None:
+        self.hass = hass
+        self.device_id = device_id
+        self.base = f"buttonplus/{device_id}"
 
-    def connect(self):
-        self.client.on_message = self._on_message
-        self.client.connect(self.host, 1883, 60)
-        self.client.loop_start()
+        self._callbacks = []
 
-        self.client.subscribe("buttonplus/+/button/+/pushbutton")
-        self.client.subscribe("buttonplus/+/sensor/+")
-        self.client.subscribe("buttonplus/+/displayitem/+/value/state")
-        self.client.subscribe("buttonplus/+/brightness/state")
-        self.client.subscribe("buttonplus/+/button/+/led/+/+/state")
+    async def async_setup(self) -> None:
+        """Subscribe to all relevant topics."""
 
-    def _on_message(self, client, userdata, msg):
+        topics = [
+            f"{self.base}/sensor/+",
+            f"{self.base}/button/+/pushbutton",
+            f"{self.base}/displayitem/+/value/state",
+            f"{self.base}/brightness/state",
+            f"{self.base}/button/+/led/+/+/state",
+        ]
+
+        for topic in topics:
+            await mqtt.async_subscribe(
+                self.hass,
+                topic,
+                self._message_received,
+            )
+
+    def add_callback(self, cb) -> None:
+        """Register callback."""
+        self._callbacks.append(cb)
+
+    async def _message_received(self, msg) -> None:
+        """Handle incoming MQTT messages."""
+
+        topic = msg.topic
+        payload = msg.payload
+
         try:
-            payload = msg.payload.decode()
+            payload = json.loads(payload)
+        except Exception:
+            pass
 
-            try:
-                payload = json.loads(payload)
-            except:
-                pass
+        _LOGGER.debug("MQTT %s -> %s", topic, payload)
 
-            self.on_message(msg.topic, payload)
+        for cb in self._callbacks:
+            cb(topic, payload)
 
-        except Exception as e:
-            print("MQTT error:", e)
+    async def publish(self, topic: str, payload) -> None:
+        """Publish MQTT message."""
 
-    def publish(self, topic, payload):
-        if isinstance(payload, dict):
+        if isinstance(payload, (dict, list)):
             payload = json.dumps(payload)
-        self.client.publish(topic, payload)
+
+        await mqtt.async_publish(self.hass, topic, payload)
